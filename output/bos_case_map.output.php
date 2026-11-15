@@ -16,7 +16,7 @@ if ((!isset($_SESSION['loginUsername'])) || ((isset($_SESSION['loginUsername']))
 }
 
 require_once (LIB.'bos_case.lib.php');
-bos_case_ensure_columns($prefix."brewing");
+bos_case_ensure_table($prefix);
 include (DB.'output_bos_case_map.db.php');
 
 $bc_label_title = isset($label_bos_case_map) ? $label_bos_case_map : "BoS Case Box Map";
@@ -32,7 +32,7 @@ $bc_label_none = isset($label_bos_case_none) ? $label_bos_case_none : "No entrie
 $bos_cases = array();
 if ($rows_bos_case) {
 	foreach ($rows_bos_case as $row) {
-		$bos_cases[(int) $row['brewBosCase']][(int) $row['brewBosSlot']] = $row;
+		$bos_cases[(int) $row['case_num']][(int) $row['slot_num']] = $row;
 	}
 }
 

@@ -142,7 +142,9 @@ h6 {
 .avoidBreak {
     page-break-inside: avoid!important;
     margin: 4px 0;
-}/* BoS case box map: 6 rows x 4 columns, one cell per bottle slot */
+}
+
+/* BoS case box map: 6 rows x 4 columns, one cell per bottle slot */
 .bos-case-map {
     border-collapse: collapse;
     margin: 0 0 20px;

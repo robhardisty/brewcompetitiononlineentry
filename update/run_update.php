@@ -5951,13 +5951,13 @@ if (($pre_update_version_index < $this_update_version_block) || ($error_count > 
 
 /**
  * ------------------------------------------- Custom: BoS Case Boxes ---------------------------------
- * Adds brewBosCase/brewBosSlot to the brewing table (see lib/bos_case.lib.php). The same check also
- * runs on first use of the feature, so it works even if this update script hasn't run.
+ * Creates the [prefix]bos_case_slots table (see lib/bos_case.lib.php). No stock tables are changed.
+ * The same check also runs on first use of the feature, so it works even if this script hasn't run.
  */
 
 require_once (LIB.'bos_case.lib.php');
-if (!bos_case_ensure_columns($prefix."brewing")) {
-	$output_run_update .= "<li class=\"text-danger\">The BoS case box columns could NOT be added to the entries table.</li>";
+if (!bos_case_ensure_table($prefix)) {
+	$output_run_update .= "<li class=\"text-danger\">The BoS case box table could NOT be created.</li>";
 	$error_count++;
 }
 

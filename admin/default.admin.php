@@ -2991,7 +2991,7 @@ if ($recently_updated) {
                 <p>The 3rd bottle of every entry is set aside in a Best of Show case box, 24 bottles per box, so it can be found quickly if the entry medals.</p>
                 <p><strong>Assign</strong> gives every entry that is marked received, and doesn't have a slot yet, the next open slot. It tops off the last box before starting a new one. Entries that already have a slot never move, so it's safe to run again after more entries arrive.</p>
                 <p><strong>Print</strong> shows one page per box: a 6 &times; 4 grid with the judging number that belongs in each slot, plus a list of the same entries.</p>
-                <p><strong>Clear</strong> removes every assignment so the next Assign starts again at box 1, slot 1. Only use it before bottles have been boxed.</p>
+                <p><strong>Clear</strong> removes every assignment so the next Assign starts again at box 1, slot 1. Only use it before bottles have been boxed. After a competition is archived, the next Assign starts over at box 1 on its own.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

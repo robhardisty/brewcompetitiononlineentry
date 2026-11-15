@@ -7,46 +7,44 @@
  * set aside in a dedicated "BoS case box" (24 bottles per box) so that, if the
  * entry medals, staff can pull that exact bottle for the Best of Show round.
  *
- * Each received entry is given a case box number (brewBosCase) and a slot
- * (brewBosSlot, 1-24) within that box. Assignment is a manual batch action run
- * by an admin; entries that already have a slot are never moved, so maps that
- * have already been printed stay accurate.
+ * Assignments live in their own table, [prefix]bos_case_slots, so none of the
+ * stock BCOE&M tables are changed. Each row ties one entry (brewing.id) to a
+ * case box number and a slot (1-24) within that box.
+ *
+ * Assignment is a manual batch action run by an admin. Entries that already
+ * have a slot are never moved, so maps that have already been printed stay
+ * accurate.
  */
 
 if (!defined('BOS_CASE_SLOTS')) define('BOS_CASE_SLOTS', 24);
 if (!defined('BOS_CASE_COLUMNS')) define('BOS_CASE_COLUMNS', 4);
 
 /**
- * Make sure the brewBosCase and brewBosSlot columns exist on the brewing table.
+ * Create the bos_case_slots table if it doesn't exist yet.
  *
- * The same columns are added by update/run_update.php, but that script only
- * runs when the installed version changes. Checking here as well means the
- * feature works on an existing site as soon as the files are uploaded.
+ * Called by update/run_update.php and on every use of the feature, so it works
+ * on an existing site as soon as the files are uploaded.
  *
- * Returns TRUE when both columns exist (or were just added).
+ * Returns TRUE when the table exists (or was just created).
  */
-function bos_case_ensure_columns($brewing_db_table) {
+function bos_case_ensure_table($prefix) {
 
 	require(CONFIG.'config.php');
 	$db_conn = new MysqliDb($connection);
 
-	if (!function_exists('check_update')) require_once(LIB.'update.lib.php');
+	$sql = sprintf("CREATE TABLE IF NOT EXISTS `%s` (
+		`id` INT(11) NOT NULL AUTO_INCREMENT,
+		`entry_id` INT(11) NOT NULL COMMENT 'brewing.id of the entry whose 3rd bottle is in this slot',
+		`case_num` INT(11) NOT NULL COMMENT 'BoS case box number',
+		`slot_num` TINYINT(2) NOT NULL COMMENT 'Slot (1-24) within the case box',
+		`assigned` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (`id`),
+		UNIQUE KEY `entry_id` (`entry_id`),
+		UNIQUE KEY `case_slot` (`case_num`,`slot_num`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", $prefix."bos_case_slots");
 
-	$ok = TRUE;
-
-	if (!check_update("brewBosCase", $brewing_db_table)) {
-		$sql = sprintf("ALTER TABLE `%s` ADD `brewBosCase` INT(11) NULL DEFAULT NULL COMMENT 'BoS case box number holding this entry''s 3rd bottle.';", $brewing_db_table);
-		$db_conn->rawQuery($sql);
-		if ($db_conn->getLastErrno() !== 0) $ok = FALSE;
-	}
-
-	if (!check_update("brewBosSlot", $brewing_db_table)) {
-		$sql = sprintf("ALTER TABLE `%s` ADD `brewBosSlot` TINYINT(2) NULL DEFAULT NULL COMMENT 'Slot (1-24) within the assigned BoS case box.';", $brewing_db_table);
-		$db_conn->rawQuery($sql);
-		if ($db_conn->getLastErrno() !== 0) $ok = FALSE;
-	}
-
-	return $ok;
+	$db_conn->rawQuery($sql);
+	return ($db_conn->getLastErrno() === 0);
 
 }
 
@@ -64,41 +62,54 @@ function bos_case_next_position($case, $slot) {
  * Fills any remaining slots in the last (highest-numbered) box first, then
  * starts new boxes. Entries are assigned in entry-number order.
  *
+ * If none of the stored assignments match a current entry (for example, after
+ * the competition was archived or entries were purged), the old assignments
+ * are cleared first so the new competition starts at box 1.
+ *
  * Returns an array: status (0 = success, otherwise the number of failed writes),
  * assigned (how many entries were given a slot this run), and cases (the total
  * number of case boxes now in use).
  */
-function assign_bos_case_slots($brewing_db_table) {
+function assign_bos_case_slots($prefix) {
 
 	require(CONFIG.'config.php');
 	$db_conn = new MysqliDb($connection);
 
 	$result = array('status' => 0, 'assigned' => 0, 'cases' => 0);
+	$slots_table = $prefix."bos_case_slots";
+	$brewing_table = $prefix."brewing";
 
-	if (!bos_case_ensure_columns($brewing_db_table)) {
+	if (!bos_case_ensure_table($prefix)) {
 		$result['status'] = 1;
 		return $result;
 	}
 
+	// Leftovers from a previous competition: rows exist but none belong to a current entry.
+	$row_total = $db_conn->rawQueryOne(sprintf("SELECT COUNT(*) AS total FROM `%s`", $slots_table));
+	if ((int) $row_total['total'] > 0) {
+		$row_live = $db_conn->rawQueryOne(sprintf("SELECT COUNT(*) AS live FROM `%s` s INNER JOIN `%s` b ON b.id = s.entry_id", $slots_table, $brewing_table));
+		if ((int) $row_live['live'] == 0) $db_conn->rawQuery(sprintf("DELETE FROM `%s`", $slots_table));
+	}
+
 	// Resume point: the last filled slot of the highest-numbered box.
-	$row_max = $db_conn->rawQueryOne(sprintf("SELECT MAX(brewBosCase) AS maxCase FROM `%s`", $brewing_db_table));
+	$row_max = $db_conn->rawQueryOne(sprintf("SELECT MAX(case_num) AS maxCase FROM `%s`", $slots_table));
 	$case = (isset($row_max['maxCase'])) ? (int) $row_max['maxCase'] : 0;
 	$slot = BOS_CASE_SLOTS; // So that with no boxes yet, the first entry goes to box 1, slot 1.
 
 	if ($case > 0) {
-		$row_slot = $db_conn->rawQueryOne(sprintf("SELECT MAX(brewBosSlot) AS maxSlot FROM `%s` WHERE brewBosCase = ?", $brewing_db_table), array($case));
+		$row_slot = $db_conn->rawQueryOne(sprintf("SELECT MAX(slot_num) AS maxSlot FROM `%s` WHERE case_num = ?", $slots_table), array($case));
 		$slot = (isset($row_slot['maxSlot'])) ? (int) $row_slot['maxSlot'] : 0;
 	}
 
-	$rows = $db_conn->rawQuery(sprintf("SELECT id FROM `%s` WHERE brewReceived = 1 AND brewBosCase IS NULL ORDER BY id ASC", $brewing_db_table));
+	$rows = $db_conn->rawQuery(sprintf("SELECT b.id FROM `%s` b LEFT JOIN `%s` s ON s.entry_id = b.id WHERE b.brewReceived = 1 AND s.id IS NULL ORDER BY b.id ASC", $brewing_table, $slots_table));
 
 	if ($rows) {
 		foreach ($rows as $row) {
 
 			list($case, $slot) = bos_case_next_position($case, $slot);
 
-			$db_conn->where('id', $row['id']);
-			if ($db_conn->update($brewing_db_table, array('brewBosCase' => $case, 'brewBosSlot' => $slot))) $result['assigned']++;
+			$data = array('entry_id' => $row['id'], 'case_num' => $case, 'slot_num' => $slot);
+			if ($db_conn->insert($slots_table, $data)) $result['assigned']++;
 			else $result['status']++;
 
 		}
@@ -114,14 +125,14 @@ function assign_bos_case_slots($brewing_db_table) {
  * Clear every case box assignment so the next "Assign" run starts over at box 1.
  * Only use this before any maps have been printed or bottles boxed.
  */
-function reset_bos_case_slots($brewing_db_table) {
+function reset_bos_case_slots($prefix) {
 
 	require(CONFIG.'config.php');
 	$db_conn = new MysqliDb($connection);
 
-	if (!bos_case_ensure_columns($brewing_db_table)) return 1;
+	if (!bos_case_ensure_table($prefix)) return 1;
 
-	$db_conn->rawQuery(sprintf("UPDATE `%s` SET brewBosCase = NULL, brewBosSlot = NULL", $brewing_db_table));
+	$db_conn->rawQuery(sprintf("DELETE FROM `%s`", $prefix."bos_case_slots"));
 	if ($db_conn->getLastErrno() !== 0) return 1;
 
 	return 0;

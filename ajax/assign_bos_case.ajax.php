@@ -24,11 +24,11 @@ if ((isset($_SESSION['session_set_'.$prefix_session])) && (isset($_SESSION['logi
 	require_once(LIB.'bos_case.lib.php');
 
 	if ((isset($_GET['action'])) && ($_GET['action'] == "reset")) {
-		if (reset_bos_case_slots($prefix."brewing") == 0) $status = 1;
+		if (reset_bos_case_slots($prefix) == 0) $status = 1;
 	}
 
 	else {
-		$bos_case_result = assign_bos_case_slots($prefix."brewing");
+		$bos_case_result = assign_bos_case_slots($prefix);
 		if ($bos_case_result['status'] == 0) $status = 1;
 		$assigned = $bos_case_result['assigned'];
 		$cases = $bos_case_result['cases'];
