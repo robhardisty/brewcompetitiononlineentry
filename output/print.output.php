@@ -151,6 +151,7 @@ else {
 		if ((isset($_SESSION['userLevel'])) && ($_SESSION['userLevel'] <= 1)) {
 			if ($section == "assignments") 			include (OUTPUT.'assignments.output.php');
 			if ($section == "bos-mat") 					include (OUTPUT.'bos_mat.output.php');
+			if ($section == "bos-case-map") 			include (OUTPUT.'bos_case_map.output.php');
 			if ($section == "dropoff") 					include (OUTPUT.'dropoff.output.php');
 			if ($section == "summary") 					include (OUTPUT.'participant_summary.output.php');
 			if ($section == "particpant-entries") 	include (OUTPUT.'participant_entries_list.output.php');

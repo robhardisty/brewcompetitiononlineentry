@@ -2272,6 +2272,20 @@ $label_mead_info_not_recorded = "Not recorded by entrant";
 
 $entry_info_text_059 = "<i class=\"fa fa-fw fa-asterisk me-1\"></i>Indicates that the style requires additional information at entry &ndash; hover over the asterisk for details.";
 
+/**
+ * ------------------------------------------
+ * Custom: BoS Case Box Map
+ * ------------------------------------------
+ */
+
+$label_bos_case_map = "BoS Case Box Map";
+$label_bos_case_box = "BoS Case Box";
+$label_slot = "Slot";
+$label_bos_case_not_received = "No longer marked received. Check this bottle.";
+$label_bos_case_find = "Find a BoS Bottle";
+$label_bos_case_find_sub = "All BoS case box bottles, in judging number order";
+$label_bos_case_none = "No entries have been assigned to a BoS case box yet. On the Admin Dashboard, open Entry Sorting and choose Assign BoS Case Boxes, then print this map again.";
+
 
 /**
  * ------------------------------------------

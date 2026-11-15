@@ -937,6 +937,34 @@ if ($recently_updated) {
                                     </ul>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col col-lg-4 col-md-4 col-sm-4 col-xs-12 small">
+                                    <strong>BoS Case Boxes</strong> <a href="#" role="button" data-toggle="modal" data-target="#bos-case-help-modal"><span class="fa fa-sm fa-question-circle text-primary"></span></a>
+                                </div>
+                                <div class="col col-lg-8 col-md-8 col-sm-8 col-xs-12 small">
+                                    <ul class="list-unstyled">
+                                        <?php if ($_SESSION['userLevel'] == 0) { ?>
+                                        <li>
+                                            <a class="hide-loader" href="#" onclick="assign_bos_case_boxes('<?php echo $ajax_url; ?>','assign','bos-case-assign'); return false;">Assign BoS Case Boxes to Newly Received Entries</a>
+                                            <div>
+                                                <span style="margin-bottom: 10px;" class="hidden" id="bos-case-assign-status"></span>
+                                                <span style="margin-bottom: 10px;" class="hidden" id="bos-case-assign-status-msg"></span>
+                                            </div>
+                                        </li>
+                                        <?php } ?>
+                                        <li><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="<?php echo $base_url; ?>includes/output.inc.php?section=bos-case-map&amp;go=default">Print BoS Case Box Maps</a></li>
+                                        <?php if ($_SESSION['userLevel'] == 0) { ?>
+                                        <li>
+                                            <a class="hide-loader text-danger" href="#" data-toggle="modal" data-target="#bos-case-reset-modal">Clear All BoS Case Box Assignments</a>
+                                            <div>
+                                                <span style="margin-bottom: 10px;" class="hidden" id="bos-case-reset-status"></span>
+                                                <span style="margin-bottom: 10px;" class="hidden" id="bos-case-reset-status-msg"></span>
+                                            </div>
+                                        </li>
+                                        <?php } ?>
+                                    </ul>
+                                </div>
+                            </div>
                         <?php if ($_SESSION['userAdminObfuscate'] == 0) { ?>
                             <div class="row" style="padding: 25px 0px 15px 0px;">
                                 <div class="col col-lg-12 col-md-12 col-sm-12 col-xs-12">
@@ -2950,6 +2978,74 @@ if ($recently_updated) {
         </div>
     </div>
 </div>
+
+<!-- BoS case box modals and script -->
+<div class="modal fade" id="bos-case-help-modal" tabindex="-1" role="dialog" aria-labelledby="bos-case-help-modal-label">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="bos-case-help-modal-label">BoS Case Boxes</h4>
+            </div>
+            <div class="modal-body">
+                <p>The 3rd bottle of every entry is set aside in a Best of Show case box, 24 bottles per box, so it can be found quickly if the entry medals.</p>
+                <p><strong>Assign</strong> gives every entry that is marked received, and doesn't have a slot yet, the next open slot. It tops off the last box before starting a new one. Entries that already have a slot never move, so it's safe to run again after more entries arrive.</p>
+                <p><strong>Print</strong> shows one page per box: a 6 &times; 4 grid with the judging number that belongs in each slot, plus a list of the same entries.</p>
+                <p><strong>Clear</strong> removes every assignment so the next Assign starts again at box 1, slot 1. Only use it before bottles have been boxed. After a competition is archived, the next Assign starts over at box 1 on its own.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="bos-case-reset-modal" tabindex="-1" role="dialog" aria-labelledby="bos-case-reset-modal-label">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="bos-case-reset-modal-label">Please Confirm</h4>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to clear every BoS case box assignment?</p>
+                <p>Any case box maps you've already printed will no longer match. Only do this before bottles have been placed in boxes.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" data-dismiss="modal" onclick="assign_bos_case_boxes('<?php echo $ajax_url; ?>','reset','bos-case-reset');">Yes, Clear Them</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+function assign_bos_case_boxes(ajax_url, action, element_id) {
+    $("#"+element_id+"-status").removeClass().attr("class","fa fa-lg fa-cog fa-spin text-muted").show();
+    $("#"+element_id+"-status-msg").html("Processing...").attr("class","text-muted small").show();
+    jQuery.ajax({
+        url: ajax_url+"assign_bos_case.ajax.php?action="+action,
+        success: function(data) {
+            var jsonData = JSON.parse(data);
+            if (jsonData.status === "1") {
+                var msg = "All assignments cleared.";
+                if (action === "assign") {
+                    var n = Number(jsonData.assigned);
+                    var c = Number(jsonData.cases);
+                    if (n === 0) msg = "No new received entries to assign. " + c + " box(es) in use.";
+                    else msg = n + " entr" + (n === 1 ? "y" : "ies") + " assigned. " + c + " box(es) in use.";
+                }
+                generic_success(element_id, "0", msg);
+            }
+            else if (jsonData.status === "9") generic_session_expired(element_id, "0", "Session expired. Sign in and try again.");
+            else generic_failure(element_id, "8000", "There was an error, please try again.");
+        },
+        error: function() {
+            generic_failure(element_id, "8000", "There was an error, please try again.");
+        }
+    });
+}
+</script>
 
 <div class="modal fade" id="jn-random-modal" tabindex="-1" role="dialog" aria-labelledby="jn-random-modal-label">
     <div class="modal-dialog" role="document">
