@@ -201,6 +201,8 @@ CREATE TABLE `baseline_brewing` (
   `brewPouring` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL COMMENT 'Houses pouring instructions.',
   `brewStyleType` tinyint(3) DEFAULT NULL,
   `brewPackaging` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL COMMENT 'Allow entrants to specify packaging size.',
+  `brewBosCase` int(11) DEFAULT NULL COMMENT 'BoS case box number holding this entry''s 3rd bottle.',
+  `brewBosSlot` tinyint(2) DEFAULT NULL COMMENT 'Slot (1-24) within the assigned BoS case box.',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

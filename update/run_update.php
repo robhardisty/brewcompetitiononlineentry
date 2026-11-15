@@ -5950,6 +5950,18 @@ $this_update_version_block = $versions['3.2.1.0'];
 if (($pre_update_version_index < $this_update_version_block) || ($error_count > $error_count_before_v3210)) $output_run_update .= $v3210_update;
 
 /**
+ * ------------------------------------------- Custom: BoS Case Boxes ---------------------------------
+ * Adds brewBosCase/brewBosSlot to the brewing table (see lib/bos_case.lib.php). The same check also
+ * runs on first use of the feature, so it works even if this update script hasn't run.
+ */
+
+require_once (LIB.'bos_case.lib.php');
+if (!bos_case_ensure_columns($prefix."brewing")) {
+	$output_run_update .= "<li class=\"text-danger\">The BoS case box columns could NOT be added to the entries table.</li>";
+	$error_count++;
+}
+
+/**
  * ---------------------------------------------------------------------------------------------------
  * End all unordered lists
  * ---------------------------------------------------------------------------------------------------
